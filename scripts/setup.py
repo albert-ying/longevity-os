@@ -17,16 +17,22 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from paths import get_db_path, get_project_root
+
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
 
-DB_PATH = "/Users/A.Y/Desktop/Projects/2026/longevity-os/data/taiyiyuan.db"
-SKILL_ROOT = Path(__file__).resolve().parent.parent
+DB_PATH = str(get_db_path())
+SKILL_ROOT = REPO_ROOT
 MIGRATIONS_DIR = SKILL_ROOT / "data" / "migrations"
 SCHEMA_PATH = SKILL_ROOT / "data" / "schema.sql"
 
-PROJECT_ROOT = Path("/Users/A.Y/Desktop/Projects/2026/longevity-os")
+PROJECT_ROOT = get_project_root()
 BACKUP_DIR = PROJECT_ROOT / "data" / "backups"
 
 # Directories that must exist for the project

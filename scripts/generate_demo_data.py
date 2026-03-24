@@ -11,9 +11,11 @@ Story arc:
   Phase 3 (Mar): Full optimization — diet dialed in, consistent, added supps, sleep ~7.5h
 
 Usage:
-    python scripts/generate_demo_data.py
+    python scripts/generate_demo_data.py               # Reset DB, then seed data
+    python scripts/generate_demo_data.py --skip-reset  # Seed into an already-reset DB
 """
 
+import argparse
 import json
 import math
 import os
@@ -24,12 +26,18 @@ import sys
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
+REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from paths import describe_runtime_paths, get_db_path, get_project_root
+
 # ---------------------------------------------------------------------------
 # Paths
 # ---------------------------------------------------------------------------
-PROJECT_ROOT = Path("/Users/A.Y/Desktop/Projects/2026/longevity-os")
-DB_PATH = PROJECT_ROOT / "data" / "taiyiyuan.db"
-SETUP_SCRIPT = PROJECT_ROOT / "scripts" / "setup.py"
+PROJECT_ROOT = get_project_root()
+DB_PATH = get_db_path()
+SETUP_SCRIPT = REPO_ROOT / "scripts" / "setup.py"
 
 # ---------------------------------------------------------------------------
 # Deterministic seed for reproducibility
@@ -930,21 +938,41 @@ INSIGHTS = [
 # MAIN GENERATOR
 # ===========================================================================
 
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="Seed the Longevity OS demo database with deterministic data",
+    )
+    parser.add_argument(
+        "--skip-reset",
+        action="store_true",
+        help="Assume the target database has already been reset and initialized",
+    )
+    return parser.parse_args()
+
+
 def main():
+    args = parse_args()
+
     print("=" * 70)
     print("TaiYiYuan (太医院) — Demo Data Generator")
     print("=" * 70)
+    print("\nResolved runtime paths:")
+    for name, value in describe_runtime_paths().items():
+        print(f"  {name:12s} {value}")
 
     # Step 1: Delete existing DB and re-initialize
-    print("\n1. Resetting database...")
-    result = subprocess.run(
-        [sys.executable, str(SETUP_SCRIPT), "--reset", "--confirm"],
-        capture_output=True, text=True
-    )
-    print(result.stdout)
-    if result.returncode != 0:
-        print(f"Setup failed: {result.stderr}")
-        sys.exit(1)
+    if args.skip_reset:
+        print("\n1. Skipping database reset (--skip-reset).")
+    else:
+        print("\n1. Resetting database...")
+        result = subprocess.run(
+            [sys.executable, str(SETUP_SCRIPT), "--reset", "--confirm"],
+            capture_output=True, text=True,
+        )
+        print(result.stdout)
+        if result.returncode != 0:
+            print(f"Setup failed: {result.stderr}")
+            sys.exit(1)
 
     # Step 2: Connect directly to DB for bulk inserts (faster than using db.py API)
     print("\n2. Connecting to database...")

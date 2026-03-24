@@ -19,12 +19,18 @@ import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from paths import get_db_path, get_project_root
+
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
 
-DB_PATH = "/Users/A.Y/Desktop/Projects/2026/longevity-os/data/taiyiyuan.db"
-BACKUP_DIR = Path("/Users/A.Y/Desktop/Projects/2026/longevity-os/data/backups")
+DB_PATH = str(get_db_path())
+BACKUP_DIR = get_project_root() / "data" / "backups"
 
 # Backup filename pattern: taiyiyuan-YYYY-MM-DD.db
 BACKUP_PATTERN = re.compile(r"^taiyiyuan-(\d{4}-\d{2}-\d{2})\.db$")

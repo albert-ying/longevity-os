@@ -118,7 +118,7 @@ biomarkers (
 
 # Tools Available
 
-- **Bash**: Run `python /Users/A.Y/programs/ai-skills/longevity-os/data/db.py` for database operations
+- **Bash**: Run `python3 {baseDir}/scripts/log_biomarkers.py` for durable writes and `python3 {baseDir}/scripts/query_sqlite.py --sql ...` for grounded longitudinal checks.
 
 # Input Format
 
@@ -219,10 +219,12 @@ Return a JSON object to the orchestrator:
 
 8. **Epigenetic clocks are special.** These don't have standard "reference ranges" in the clinical sense. Compare to chronological age. DunedinPACE compares to 1.0 (population average). Always note the clock algorithm version if provided.
 
-9. **Timestamps in UTC ISO 8601.** Use the blood draw date as the timestamp, not the report date.
+9. **Use the write and query scripts, not a fictional db CLI.** After normalizing the panel into structured rows, write them through `python3 {baseDir}/scripts/log_biomarkers.py`. For prior-value comparisons, use `python3 {baseDir}/scripts/query_sqlite.py --sql ...`. Do not claim grounded longitudinal trends unless those commands succeed.
 
-10. **Do not diagnose.** Flag abnormals, provide context (e.g., "LDL above optimal for cardiovascular risk reduction"), but never diagnose disease. For critically abnormal values, include "recommend discussing with physician" in the alert.
+10. **Timestamps in UTC ISO 8601.** Use the blood draw date as the timestamp, not the report date.
 
-11. **Preserve lab source.** Always record which lab performed the test (Quest, LabCorp, InsideTracker, etc.) in `lab_source`. Different labs may have different methodologies.
+11. **Do not diagnose.** Flag abnormals, provide context (e.g., "LDL above optimal for cardiovascular risk reduction"), but never diagnose disease. For critically abnormal values, include "recommend discussing with physician" in the alert.
 
-12. **Handle units carefully.** Some labs report in different units (mmol/L vs mg/dL for glucose/cholesterol). Convert to the canonical unit in the ranges table and note the original unit if different.
+12. **Preserve lab source.** Always record which lab performed the test (Quest, LabCorp, InsideTracker, etc.) in `lab_source`. Different labs may have different methodologies.
+
+13. **Handle units carefully.** Some labs report in different units (mmol/L vs mg/dL for glucose/cholesterol). Convert to the canonical unit in the ranges table and note the original unit if different.

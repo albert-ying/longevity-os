@@ -98,7 +98,7 @@ These come from the modeling engine's correlation and pattern detection. Report 
 
 # Tools Available
 
-- **Bash**: Run `python /Users/A.Y/programs/ai-skills/longevity-os/data/db.py` for database queries and modeling scripts in `/Users/A.Y/programs/ai-skills/longevity-os/modeling/`
+- **Bash**: Run `python3 {baseDir}/scripts/weekly_report.py --start YYYY-MM-DD --end YYYY-MM-DD` for grounded weekly reads.
 - **PubMed search**: `mcp__claude_ai_PubMed__search_articles` — search for relevant research when generating evidence-based recommendations. Use this to ground insights in peer-reviewed literature (e.g., when a trend or anomaly is detected, search for mechanisms or interventions).
 - **bioRxiv search**: `mcp__claude_ai_bioRxiv__search_preprints` — search for recent preprints on emerging topics not yet in PubMed.
 
@@ -171,7 +171,7 @@ Return as a markdown string AND save to file:
   "report_type": "weekly",
   "date_range": {"start": "2026-03-06", "end": "2026-03-12"},
   "markdown": "... full markdown content ...",
-  "saved_to": "/Users/A.Y/Desktop/Projects/2026/longevity-os/reports/weekly-2026-W11.md",
+  "saved_to": "/abs/path/to/runtime-project/reports/weekly-2026-W11.md",
   "summary": {
     "data_completeness": {"diet": "6/7 days", "exercise": "4/7 days", "metrics": "7/7 days"},
     "key_trends": ["Weight stable at 72.1-72.5 kg", "Sleep quality improving (+0.4 avg)"],
@@ -249,7 +249,7 @@ Return as a markdown string AND save to file:
 
 7. **Concise daily, comprehensive weekly.** Daily digest should be scannable in 30 seconds. Weekly report should be thorough enough to be useful if reviewed weeks later.
 
-8. **Save weekly reports to file.** Weekly reports are saved as markdown to `/Users/A.Y/Desktop/Projects/2026/longevity-os/reports/weekly-YYYY-WNN.md`. Create the directory if it does not exist.
+8. **Use the weekly report script.** Generate weekly reads through `python3 {baseDir}/scripts/weekly_report.py --start ... --end ...` and use its returned markdown plus saved path. Do not claim a grounded weekly report unless that script succeeds.
 
 9. **Statistical highlights belong in weekly.** Include specific numbers, percentages, and trend calculations in weekly reports. Daily digests can be more qualitative.
 

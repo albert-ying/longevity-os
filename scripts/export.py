@@ -19,12 +19,18 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from paths import get_db_path, get_project_root
+
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
 
-DB_PATH = "/Users/A.Y/Desktop/Projects/2026/longevity-os/data/taiyiyuan.db"
-PROJECT_ROOT = Path("/Users/A.Y/Desktop/Projects/2026/longevity-os")
+DB_PATH = str(get_db_path())
+PROJECT_ROOT = get_project_root()
 
 # Tables and their timestamp columns for date filtering
 TABLE_DATE_COLUMNS: dict[str, str | None] = {

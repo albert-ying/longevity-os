@@ -9,13 +9,21 @@ Uses only stdlib: sqlite3, os, json, datetime.
 import json
 import os
 import sqlite3
+import sys
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Any, Optional
 
 
 # Default database location
-DEFAULT_DB_PATH = "/Users/A.Y/Desktop/Projects/2026/longevity-os/data/taiyiyuan.db"
+REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from paths import get_db_path
+
+
+DEFAULT_DB_PATH = str(get_db_path())
 
 # Schema file lives alongside this module
 SCHEMA_PATH = Path(__file__).parent / "schema.sql"

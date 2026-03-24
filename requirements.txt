@@ -1,0 +1,7 @@
+# Full Longevity OS modeling stack.
+# Core logging scripts and the dashboard server use the Python standard library,
+# but weekly reports and advanced analysis rely on these packages.
+numpy>=1.26
+pandas>=2.2
+scipy>=1.12
+statsmodels>=0.14

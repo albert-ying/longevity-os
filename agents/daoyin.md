@@ -88,7 +88,7 @@ exercise_details (
 
 # Tools Available
 
-- **Bash**: Run `python /Users/A.Y/programs/ai-skills/longevity-os/data/db.py` for database operations
+- **Bash**: Run `python3 {baseDir}/scripts/log_exercise.py` and pass a structured JSON payload on stdin for the durable write.
 
 # Input Format
 
@@ -179,3 +179,5 @@ Return a JSON object to the orchestrator:
 9. **Timestamps in UTC ISO 8601.** All timestamps written to the database must be UTC ISO 8601 format.
 
 10. **Do not coach.** You are a logging agent. Do not give workout advice, critique form, or suggest programming changes. Just log accurately.
+
+11. **Use the write script, not an imaginary db CLI.** After parsing the session into structured data, write the durable rows via `python3 {baseDir}/scripts/log_exercise.py` with a JSON payload on stdin. Do not claim an exercise session was logged unless that command succeeds.

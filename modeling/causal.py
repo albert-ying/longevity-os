@@ -25,6 +25,7 @@ import argparse
 import sqlite3
 import warnings
 from datetime import datetime, timedelta, date
+from pathlib import Path
 from typing import Optional
 
 import numpy as np
@@ -39,10 +40,17 @@ except ImportError:
 # ---------------------------------------------------------------------------
 # DB import
 # ---------------------------------------------------------------------------
+REPO_ROOT = Path(__file__).resolve().parent.parent
 _DATA_DIR = os.path.join(os.path.dirname(__file__), '..', 'data')
-sys.path.insert(0, _DATA_DIR)
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+if _DATA_DIR not in sys.path:
+    sys.path.insert(0, _DATA_DIR)
 
-DB_PATH = '/Users/A.Y/Desktop/Projects/2026/longevity-os/data/taiyiyuan.db'
+from paths import get_db_path
+
+
+DB_PATH = str(get_db_path())
 
 try:
     from db import TaiYiYuanDB
@@ -78,6 +86,9 @@ def _to_date(s: str) -> date:
     if 'T' in str(s):
         return datetime.fromisoformat(s.replace('Z', '+00:00')).date()
     return date.fromisoformat(str(s))
+
+
+LOCAL_DATE_SQL = "SUBSTR(timestamp, 1, 10)"
 
 
 class CausalAnalyzer:
@@ -534,13 +545,13 @@ class CausalAnalyzer:
 
             # Values during trial
             during = self._query_df(
-                "SELECT value FROM body_metrics WHERE metric_type = ? AND DATE(timestamp) BETWEEN ? AND ?",
+                "SELECT value FROM body_metrics WHERE metric_type = ? AND SUBSTR(timestamp, 1, 10) BETWEEN ? AND ?",
                 (mt, str(start_dt), str(end_dt)),
             )
             # Values in equivalent period before trial
             pre_start = start_dt - timedelta(days=trial_days)
             before = self._query_df(
-                "SELECT value FROM body_metrics WHERE metric_type = ? AND DATE(timestamp) BETWEEN ? AND ?",
+                "SELECT value FROM body_metrics WHERE metric_type = ? AND SUBSTR(timestamp, 1, 10) BETWEEN ? AND ?",
                 (mt, str(pre_start), str(start_dt - timedelta(days=1))),
             )
 
@@ -574,13 +585,13 @@ class CausalAnalyzer:
         for label, sql_before, sql_during in [
             (
                 'daily_calories',
-                "SELECT SUM(total_calories) AS v FROM diet_entries WHERE DATE(timestamp) BETWEEN ? AND ? GROUP BY DATE(timestamp)",
-                "SELECT SUM(total_calories) AS v FROM diet_entries WHERE DATE(timestamp) BETWEEN ? AND ? GROUP BY DATE(timestamp)",
+                "SELECT SUM(total_calories) AS v FROM diet_entries WHERE SUBSTR(timestamp, 1, 10) BETWEEN ? AND ? GROUP BY SUBSTR(timestamp, 1, 10)",
+                "SELECT SUM(total_calories) AS v FROM diet_entries WHERE SUBSTR(timestamp, 1, 10) BETWEEN ? AND ? GROUP BY SUBSTR(timestamp, 1, 10)",
             ),
             (
                 'exercise_minutes',
-                "SELECT SUM(duration_minutes) AS v FROM exercise_entries WHERE DATE(timestamp) BETWEEN ? AND ? GROUP BY DATE(timestamp)",
-                "SELECT SUM(duration_minutes) AS v FROM exercise_entries WHERE DATE(timestamp) BETWEEN ? AND ? GROUP BY DATE(timestamp)",
+                "SELECT SUM(duration_minutes) AS v FROM exercise_entries WHERE SUBSTR(timestamp, 1, 10) BETWEEN ? AND ? GROUP BY SUBSTR(timestamp, 1, 10)",
+                "SELECT SUM(duration_minutes) AS v FROM exercise_entries WHERE SUBSTR(timestamp, 1, 10) BETWEEN ? AND ? GROUP BY SUBSTR(timestamp, 1, 10)",
             ),
         ]:
             pre_start = start_dt - timedelta(days=trial_days)

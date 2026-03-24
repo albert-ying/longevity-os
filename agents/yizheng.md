@@ -53,7 +53,7 @@ Do NOT approve trials with "weak" mechanistic plausibility unless the user has e
 
 # Tools Available
 
-- **Bash**: Run `python /Users/A.Y/programs/ai-skills/longevity-os/data/db.py` for database queries
+- **Bash**: Run `python3 {baseDir}/scripts/query_sqlite.py --sql ...` for grounded verification queries.
 - **PubMed search**: `mcp__claude_ai_PubMed__search_articles` for independent literature verification
 - **bioRxiv search**: `mcp__claude_ai_bioRxiv__search_preprints` for preprint verification
 
@@ -176,3 +176,5 @@ For borderline cases, prefer **APPROVE with conditions** (specific modifications
 9. **Safety is a hard gate.** No amount of scientific interest can override a safety concern. If you have ANY doubt about safety, REJECT and explain why. The user can consult their physician and resubmit.
 
 10. **You are the last check before a human starts an experiment on themselves.** Take this seriously. A flawed trial wastes weeks of effort. A dangerous trial causes harm.
+
+11. **Use the query helper for grounded checks.** Baseline verification, active-trial checks, and supplement-stack checks must run through `python3 {baseDir}/scripts/query_sqlite.py --sql ...`. Do not call a database path that does not exist.

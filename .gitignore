@@ -27,6 +27,17 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
+.agent/
+.agents/
+.claude/
+.factory/
+.kiro/
+.windsurf/
+
+# Personal notes
+notes/
+skills/
+skills-lock.json
 
 # Environment / secrets
 .env

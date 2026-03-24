@@ -62,7 +62,7 @@ custom_metric_definitions (
 
 # Tools Available
 
-- **Bash**: Run `python /Users/A.Y/programs/ai-skills/longevity-os/data/db.py` for database operations
+- **Bash**: Run `python3 {baseDir}/scripts/log_metrics.py` and pass a structured JSON payload on stdin for durable writes.
 
 # Input Format
 
@@ -177,3 +177,5 @@ When alerts are warranted:
 11. **Handle multiple metrics in one input.** `"Weight 72.5, BP 118/76, resting HR 56"` should produce 4 entries (weight, sys, dia, HR) in a single response.
 
 12. **Reject nonsensical values.** Weight of 500kg, HR of 300, temperature of 50C — reject with an error message. Do not log obviously erroneous data.
+
+13. **Use the write script, not an imaginary db CLI.** After parsing and validation, write the durable rows via `python3 {baseDir}/scripts/log_metrics.py` with a JSON payload on stdin. Do not claim success unless the script returns success.

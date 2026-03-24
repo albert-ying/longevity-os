@@ -1,0 +1,860 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Longevity OS Deep Dive</title>
+    <style>
+      :root {
+        --bg: #f7f8fb;
+        --paper: #ffffff;
+        --ink: #101828;
+        --muted: #5f6b7a;
+        --line: rgba(16, 24, 40, 0.08);
+        --blue: #2459d3;
+        --teal: #167c74;
+        --amber: #ba6a0a;
+        --rose: #b42318;
+        --slate: #344054;
+        --shadow: 0 18px 48px rgba(15, 23, 42, 0.08);
+        --radius: 28px;
+      }
+
+      * { box-sizing: border-box; }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        background:
+          radial-gradient(circle at top left, rgba(36, 89, 211, 0.06), transparent 26%),
+          radial-gradient(circle at top right, rgba(22, 124, 116, 0.06), transparent 24%),
+          var(--bg);
+        color: var(--ink);
+        font-family: "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+      }
+
+      a {
+        color: inherit;
+      }
+
+      .page {
+        width: min(1460px, calc(100% - 28px));
+        margin: 18px auto 44px;
+        display: grid;
+        grid-template-columns: 290px minmax(0, 1fr);
+        gap: 18px;
+      }
+
+      .toc,
+      .hero,
+      .section,
+      .figure,
+      .rank-card,
+      .change-card,
+      .test-card,
+      .meta-card {
+        background: var(--paper);
+        border: 1px solid var(--line);
+        box-shadow: var(--shadow);
+        border-radius: var(--radius);
+      }
+
+      .toc {
+        position: sticky;
+        top: 18px;
+        height: fit-content;
+        padding: 22px 20px;
+      }
+
+      .toc h2,
+      .section h2,
+      .hero h1 {
+        margin: 0;
+      }
+
+      .hero,
+      .section {
+        padding: 28px;
+      }
+
+      .figure {
+        padding: 18px;
+      }
+
+      .kicker {
+        margin: 0 0 10px;
+        font-size: 11px;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: var(--blue);
+      }
+
+      .hero-grid {
+        display: grid;
+        grid-template-columns: 1.4fr 0.8fr;
+        gap: 18px;
+        align-items: stretch;
+      }
+
+      h1 {
+        font-size: clamp(42px, 6vw, 82px);
+        line-height: 0.94;
+        letter-spacing: -0.05em;
+        max-width: 11ch;
+      }
+
+      h2 {
+        font-size: clamp(28px, 3vw, 42px);
+        line-height: 0.98;
+        letter-spacing: -0.03em;
+      }
+
+      h3 {
+        margin: 0;
+        font-size: 18px;
+        letter-spacing: -0.02em;
+      }
+
+      p,
+      li,
+      td,
+      th {
+        color: var(--muted);
+        line-height: 1.65;
+        font-size: 15px;
+      }
+
+      .lede {
+        max-width: 68ch;
+        margin-top: 18px;
+        font-size: 17px;
+      }
+
+      .stamp {
+        margin-top: 18px;
+        display: inline-flex;
+        gap: 10px;
+        align-items: center;
+        padding: 10px 14px;
+        border-radius: 999px;
+        background: rgba(16, 24, 40, 0.04);
+        color: var(--slate);
+        font-size: 13px;
+      }
+
+      .hero-side {
+        display: grid;
+        gap: 14px;
+      }
+
+      .meta-card {
+        padding: 16px 18px;
+      }
+
+      .meta-label {
+        font-size: 12px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-bottom: 10px;
+      }
+
+      .big-number {
+        font-size: 42px;
+        line-height: 1;
+        letter-spacing: -0.04em;
+        color: var(--ink);
+        margin-bottom: 8px;
+      }
+
+      .toc h2 {
+        font-size: 16px;
+        margin-bottom: 14px;
+      }
+
+      .toc ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: grid;
+        gap: 8px;
+      }
+
+      .toc a {
+        display: block;
+        text-decoration: none;
+        padding: 9px 12px;
+        border-radius: 14px;
+        color: var(--slate);
+      }
+
+      .toc a:hover {
+        background: rgba(36, 89, 211, 0.07);
+        color: var(--ink);
+      }
+
+      .section + .section,
+      .section + .figure,
+      .figure + .section,
+      .figure + .figure {
+        margin-top: 18px;
+      }
+
+      .subhead {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        align-items: end;
+        margin-bottom: 18px;
+      }
+
+      .caption {
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid var(--line);
+      }
+
+      .two-col {
+        display: grid;
+        grid-template-columns: 1.12fr 0.88fr;
+        gap: 18px;
+      }
+
+      .three-col {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .rank-grid,
+      .change-grid,
+      .test-grid {
+        display: grid;
+        gap: 14px;
+      }
+
+      .rank-card,
+      .change-card,
+      .test-card {
+        padding: 18px;
+      }
+
+      .rank-header {
+        display: flex;
+        gap: 14px;
+        align-items: baseline;
+        margin-bottom: 10px;
+      }
+
+      .rank-no {
+        font-size: 26px;
+        letter-spacing: -0.04em;
+        color: var(--rose);
+        min-width: 32px;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        color: var(--slate);
+        background: rgba(16, 24, 40, 0.05);
+      }
+
+      .pill.high { background: rgba(180, 35, 24, 0.1); color: var(--rose); }
+      .pill.med { background: rgba(186, 106, 10, 0.12); color: var(--amber); }
+      .pill.low { background: rgba(22, 124, 116, 0.11); color: var(--teal); }
+
+      .rank-card ul,
+      .change-card ul,
+      .test-card ul {
+        margin: 10px 0 0;
+        padding-left: 18px;
+      }
+
+      .matrix {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 8px;
+      }
+
+      .matrix th,
+      .matrix td {
+        text-align: left;
+        vertical-align: top;
+        border-top: 1px solid var(--line);
+        padding: 12px 10px;
+      }
+
+      .matrix th {
+        color: var(--ink);
+        font-weight: 600;
+      }
+
+      .code {
+        margin-top: 12px;
+        background: #0f172a;
+        color: #d7e2f0;
+        border-radius: 18px;
+        padding: 14px 16px;
+        overflow-x: auto;
+        font: 13px/1.6 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      }
+
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 14px;
+      }
+
+      .legend span {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        color: var(--slate);
+      }
+
+      .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+      }
+
+      .dot.blue { background: var(--blue); }
+      .dot.teal { background: var(--teal); }
+      .dot.amber { background: var(--amber); }
+      .dot.rose { background: var(--rose); }
+
+      .footnote {
+        margin-top: 16px;
+        padding: 14px 16px;
+        border-left: 4px solid rgba(36, 89, 211, 0.28);
+        background: rgba(36, 89, 211, 0.06);
+        border-radius: 0 16px 16px 0;
+      }
+
+      svg {
+        width: 100%;
+        height: auto;
+        display: block;
+      }
+
+      @media (max-width: 1100px) {
+        .page {
+          grid-template-columns: 1fr;
+        }
+
+        .toc {
+          position: static;
+        }
+
+        .hero-grid,
+        .two-col,
+        .three-col {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <aside class="toc">
+        <p class="kicker">Contents</p>
+        <h2>Longevity OS Deep Dive</h2>
+        <ul>
+          <li><a href="#thesis">Thesis</a></li>
+          <li><a href="#exists">What Exists Today</a></li>
+          <li><a href="#gaps">Ranked Gaps</a></li>
+          <li><a href="#changes">What This Branch Changed</a></li>
+          <li><a href="#testing">How To Test It</a></li>
+          <li><a href="#remaining">What Remains</a></li>
+        </ul>
+        <div class="footnote">
+          <strong style="display:block; color:var(--ink); margin-bottom:6px;">Review intent</strong>
+          <span>This page is designed to answer five questions quickly: what exists, where the gaps are, what this branch changed, how to test it, and what still remains.</span>
+        </div>
+      </aside>
+
+      <div>
+        <section class="hero" id="thesis">
+          <div class="hero-grid">
+            <div>
+              <p class="kicker">Technical Deep Dive</p>
+              <h1>Longevity OS<br />Current System,<br />Gaps, And Branch Delta</h1>
+              <p class="lede">
+                The system already has a compelling shape: an orchestrator prompt, nine specialist prompts, a local SQLite data model, and Python analytics modules that can turn logged health data into reports, insights, and N-of-1 trial support.
+                The real product risk was not lack of ambition. It was integrity drift between the runtime surfaces that write, read, seed, and explain the system.
+              </p>
+              <div class="stamp">Updated 2026-03-19 16:02 CST</div>
+            </div>
+            <div class="hero-side">
+              <div class="meta-card">
+                <div class="meta-label">Branch Scope</div>
+                <div class="big-number">16</div>
+                <p>files changed across runtime pathing, demo reset, read-path grouping, README, prompt docs, and review artifacts.</p>
+              </div>
+              <div class="meta-card">
+                <div class="meta-label">Core Thesis</div>
+                <p>The branch hardens demo integrity and documentation, but it does <strong>not</strong> fully prove the natural-language write paths yet. The remaining work is still mostly around prompt behavior and regression coverage.</p>
+              </div>
+              <div class="meta-card">
+                <div class="meta-label">Recommended Read</div>
+                <p>Read this page in order if you want the full picture. If you are skimming, jump to the ranked gaps and the branch change map.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="section" id="exists">
+          <div class="subhead">
+            <div>
+              <p class="kicker">Current State</p>
+              <h2>What exists in the system today</h2>
+            </div>
+            <div class="pill">Prompt system + local DB + analytics engine</div>
+          </div>
+          <p>
+            Longevity OS already behaves like a layered local product rather than a single assistant prompt. The stack is real: a prompt orchestrator routes work to domain prompts, those prompts read and write a structured SQLite schema, and the modeling layer computes trends, anomalies, correlations, and trial analytics over that stored state.
+          </p>
+        </section>
+
+        <figure class="figure">
+          <svg viewBox="0 0 1180 620" xmlns="http://www.w3.org/2000/svg" aria-label="System topology">
+            <rect x="0" y="0" width="1180" height="620" rx="30" fill="#ffffff" />
+            <rect x="52" y="68" width="170" height="76" rx="18" fill="#eef4ff" stroke="#2459d3" />
+            <text x="137" y="101" text-anchor="middle" font-size="16" font-weight="700" fill="#101828">User</text>
+            <text x="137" y="123" text-anchor="middle" font-size="13" fill="#5f6b7a">Claude Code or OpenClaw</text>
+
+            <rect x="282" y="68" width="244" height="76" rx="18" fill="#eef4ff" stroke="#2459d3" />
+            <text x="404" y="101" text-anchor="middle" font-size="16" font-weight="700" fill="#101828">Imperial Physician</text>
+            <text x="404" y="123" text-anchor="middle" font-size="13" fill="#5f6b7a">orchestrator prompt</text>
+
+            <rect x="584" y="40" width="542" height="132" rx="22" fill="#f8fafc" stroke="rgba(16,24,40,0.12)" />
+            <text x="612" y="70" font-size="13" font-weight="700" fill="#2459d3">Department prompts</text>
+            <rect x="612" y="88" width="150" height="56" rx="16" fill="#ffffff" stroke="rgba(16,24,40,0.1)" />
+            <rect x="782" y="88" width="150" height="56" rx="16" fill="#ffffff" stroke="rgba(16,24,40,0.1)" />
+            <rect x="952" y="88" width="150" height="56" rx="16" fill="#ffffff" stroke="rgba(16,24,40,0.1)" />
+            <text x="687" y="111" text-anchor="middle" font-size="14" font-weight="700" fill="#101828">Diet to Reports</text>
+            <text x="687" y="130" text-anchor="middle" font-size="12" fill="#5f6b7a">logging and querying</text>
+            <text x="857" y="111" text-anchor="middle" font-size="14" font-weight="700" fill="#101828">Trial prompts</text>
+            <text x="857" y="130" text-anchor="middle" font-size="12" fill="#5f6b7a">design review status</text>
+            <text x="1027" y="111" text-anchor="middle" font-size="14" font-weight="700" fill="#101828">External APIs</text>
+            <text x="1027" y="130" text-anchor="middle" font-size="12" fill="#5f6b7a">USDA and literature</text>
+
+            <rect x="94" y="250" width="310" height="122" rx="24" fill="#f4fbfa" stroke="#167c74" />
+            <text x="124" y="284" font-size="13" font-weight="700" fill="#167c74">Ops scripts</text>
+            <text x="124" y="312" font-size="18" font-weight="700" fill="#101828">setup backup export migrate</text>
+            <text x="124" y="337" font-size="18" font-weight="700" fill="#101828">seed and demo reset</text>
+            <text x="124" y="362" font-size="13" fill="#5f6b7a">operator facing CLI surface</text>
+
+            <rect x="438" y="228" width="308" height="166" rx="24" fill="#fbfbff" stroke="#2459d3" />
+            <text x="468" y="262" font-size="13" font-weight="700" fill="#2459d3">Data layer</text>
+            <text x="468" y="290" font-size="20" font-weight="700" fill="#101828">SQLite plus schema helpers</text>
+            <text x="468" y="318" font-size="13" fill="#5f6b7a">diet entries body metrics biomarkers</text>
+            <text x="468" y="339" font-size="13" fill="#5f6b7a">supplements trials observations insights</text>
+            <text x="468" y="360" font-size="13" fill="#5f6b7a">model cache and model runs</text>
+
+            <rect x="780" y="250" width="346" height="122" rx="24" fill="#fff9f1" stroke="#ba6a0a" />
+            <text x="810" y="284" font-size="13" font-weight="700" fill="#ba6a0a">Modeling</text>
+            <text x="810" y="312" font-size="18" font-weight="700" fill="#101828">engine patterns causal</text>
+            <text x="810" y="337" font-size="13" fill="#5f6b7a">trend anomaly correlation and trial analysis</text>
+            <text x="810" y="362" font-size="13" fill="#5f6b7a">CLI JSON outputs consumed by prompts</text>
+
+            <rect x="340" y="464" width="230" height="78" rx="18" fill="#f8fafc" stroke="rgba(16,24,40,0.1)" />
+            <text x="455" y="494" text-anchor="middle" font-size="16" font-weight="700" fill="#101828">Dashboard</text>
+            <text x="455" y="516" text-anchor="middle" font-size="13" fill="#5f6b7a">local visualization layer</text>
+
+            <rect x="616" y="464" width="288" height="78" rx="18" fill="#f8fafc" stroke="rgba(16,24,40,0.1)" />
+            <text x="760" y="494" text-anchor="middle" font-size="16" font-weight="700" fill="#101828">Review surfaces</text>
+            <text x="760" y="516" text-anchor="middle" font-size="13" fill="#5f6b7a">README prompt docs and PR descriptions</text>
+
+            <path d="M222 106 H282" stroke="#2459d3" stroke-width="2.4" fill="none" />
+            <path d="M526 106 H584" stroke="#2459d3" stroke-width="2.4" fill="none" />
+            <path d="M404 144 V196 H592 V228" stroke="#2459d3" stroke-width="2.4" fill="none" />
+            <path d="M249 250 V196 H592" stroke="#167c74" stroke-width="2.4" fill="none" />
+            <path d="M746 311 H780" stroke="#ba6a0a" stroke-width="2.4" fill="none" />
+            <path d="M592 394 V436 H455 V464" stroke="#2459d3" stroke-width="2.4" fill="none" />
+            <path d="M760 394 V464" stroke="#ba6a0a" stroke-width="2.4" fill="none" />
+          </svg>
+          <div class="caption">
+            <strong style="display:block; color:var(--ink); margin-bottom:6px;">System topology</strong>
+            <span>The system already has meaningful layers. The weak spot was not “missing architecture.” It was the integrity of the handoffs between the prompt layer, the CLI layer, and the shared SQLite runtime.</span>
+          </div>
+        </figure>
+
+        <section class="section">
+          <div class="subhead">
+            <div>
+              <p class="kicker">Ownership</p>
+              <h2>What each subsystem owns today</h2>
+            </div>
+          </div>
+          <table class="matrix">
+            <thead>
+              <tr>
+                <th>Subsystem</th>
+                <th>Owns</th>
+                <th>Depends on</th>
+                <th>Main handoff</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>SKILL.md</strong></td>
+                <td>Intent routing and response framing.</td>
+                <td>Department prompts, runtime shell access, database path.</td>
+                <td>Hands structured tasks into prompt modules.</td>
+              </tr>
+              <tr>
+                <td><strong>agents/*.md</strong></td>
+                <td>Diet, exercise, metrics, biomarkers, supplements, reports, trials.</td>
+                <td>Orchestrator payload, SQLite, analytics CLIs, external APIs.</td>
+                <td>Returns JSON summaries and SQL side effects.</td>
+              </tr>
+              <tr>
+                <td><strong>data/db.py</strong></td>
+                <td>Schema-bound helper API and SQLite connection semantics.</td>
+                <td>SQLite and the resolved runtime path.</td>
+                <td>Supplies shared read and write access.</td>
+              </tr>
+              <tr>
+                <td><strong>modeling/*.py</strong></td>
+                <td>Trend, anomaly, correlation, and causal analysis.</td>
+                <td>Stored rows plus scientific Python packages.</td>
+                <td>Emits report-ready JSON back to prompts.</td>
+              </tr>
+              <tr>
+                <td><strong>scripts/*.py</strong></td>
+                <td>Setup, reset, backup, export, migration, seed flows.</td>
+                <td>SQLite, schema files, and the runtime path model.</td>
+                <td>Creates and verifies the operator-facing system state.</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section class="section" id="gaps">
+          <div class="subhead">
+            <div>
+              <p class="kicker">Ranked Findings</p>
+              <h2>Where the actual gaps are</h2>
+            </div>
+            <div class="pill high">Ranked by demo risk</div>
+          </div>
+          <div class="rank-grid">
+            <div class="rank-card">
+              <div class="rank-header">
+                <div class="rank-no">1</div>
+                <div>
+                  <h3>Runtime path drift could split writes and reads across different SQLite files</h3>
+                  <div class="pill high" style="margin-top:8px;">Highest risk</div>
+                </div>
+              </div>
+              <p>The codebase had separate absolute path literals across scripts, modeling modules, and prompt docs. That makes a demo look fine while different entrypoints are reading and writing different databases.</p>
+            </div>
+
+            <div class="rank-card">
+              <div class="rank-header">
+                <div class="rank-no">2</div>
+                <div>
+                  <h3>No named top-level demo reset workflow existed</h3>
+                  <div class="pill high" style="margin-top:8px;">Operator risk</div>
+                </div>
+              </div>
+              <p>The repo had a deterministic data generator, but not a single command that reset, seeded, and verified the expected hero scenes before a rehearsal or recording.</p>
+            </div>
+
+            <div class="rank-card">
+              <div class="rank-header">
+                <div class="rank-no">3</div>
+                <div>
+                  <h3>Read paths grouped timestamped rows by SQLite UTC day instead of the local calendar day</h3>
+                  <div class="pill high" style="margin-top:8px;">Data integrity risk</div>
+                </div>
+              </div>
+              <p>The seeded demo showed this clearly: diet rows spilled into the wrong day because `DATE(timestamp)` reinterpreted offset timestamps in UTC.</p>
+            </div>
+
+            <div class="rank-card">
+              <div class="rank-header">
+                <div class="rank-no">4</div>
+                <div>
+                  <h3>The README and prompt-side setup story drifted from the real Python operator workflow</h3>
+                  <div class="pill med" style="margin-top:8px;">Review and onboarding risk</div>
+                </div>
+              </div>
+              <p>The documentation described paths and initialization behavior that were no longer the best source of truth. That creates operator confusion even if the code itself works.</p>
+            </div>
+
+            <div class="rank-card">
+              <div class="rank-header">
+                <div class="rank-no">5</div>
+                <div>
+                  <h3>Prompt-driven write paths still lack regression coverage</h3>
+                  <div class="pill med" style="margin-top:8px;">Still open</div>
+                </div>
+              </div>
+              <p>This branch did not prove that casual meal logging or multi-metric logging always create the correct rows. The demo infrastructure is stronger, but prompt-behavior verification is still missing.</p>
+            </div>
+
+            <div class="rank-card">
+              <div class="rank-header">
+                <div class="rank-no">6</div>
+                <div>
+                  <h3>Some capability surfaces are still incomplete or environment-sensitive</h3>
+                  <div class="pill low" style="margin-top:8px;">Known limitation</div>
+                </div>
+              </div>
+              <p>`scripts/import_apple_health.py` is still a stub, and the full modeling CLIs require scientific Python packages in the shell environment.</p>
+            </div>
+          </div>
+        </section>
+
+        <figure class="figure">
+          <svg viewBox="0 0 1180 520" xmlns="http://www.w3.org/2000/svg" aria-label="Gap ranking">
+            <rect x="0" y="0" width="1180" height="520" rx="30" fill="#ffffff" />
+            <text x="56" y="58" font-size="16" font-weight="700" fill="#101828">Gap ranking board</text>
+            <text x="56" y="82" font-size="13" fill="#5f6b7a">Higher placement means higher demo and review risk.</text>
+
+            <rect x="56" y="116" width="1068" height="70" rx="22" fill="#fff0ef" stroke="#b42318" />
+            <text x="84" y="145" font-size="14" font-weight="700" fill="#b42318">1</text>
+            <text x="118" y="145" font-size="18" font-weight="700" fill="#101828">Runtime path drift</text>
+            <text x="118" y="169" font-size="13" fill="#5f6b7a">Different entrypoints could silently talk to different SQLite files.</text>
+
+            <rect x="56" y="202" width="1068" height="70" rx="22" fill="#fff0ef" stroke="#b42318" />
+            <text x="84" y="231" font-size="14" font-weight="700" fill="#b42318">2</text>
+            <text x="118" y="231" font-size="18" font-weight="700" fill="#101828">No explicit demo reset workflow</text>
+            <text x="118" y="255" font-size="13" fill="#5f6b7a">Operators had a generator, but not a one-command reset seed verify story.</text>
+
+            <rect x="56" y="288" width="1068" height="70" rx="22" fill="#fff7ed" stroke="#ba6a0a" />
+            <text x="84" y="317" font-size="14" font-weight="700" fill="#ba6a0a">3</text>
+            <text x="118" y="317" font-size="18" font-weight="700" fill="#101828">Local-day read bug</text>
+            <text x="118" y="341" font-size="13" fill="#5f6b7a">SQLite UTC conversion could move rows into the wrong day bucket.</text>
+
+            <rect x="56" y="374" width="516" height="70" rx="22" fill="#f7f9fc" stroke="rgba(16,24,40,0.12)" />
+            <text x="84" y="403" font-size="14" font-weight="700" fill="#344054">4</text>
+            <text x="118" y="403" font-size="18" font-weight="700" fill="#101828">Docs drift</text>
+            <text x="118" y="427" font-size="13" fill="#5f6b7a">README and prompt docs no longer matched the operator path.</text>
+
+            <rect x="608" y="374" width="516" height="70" rx="22" fill="#f7f9fc" stroke="rgba(16,24,40,0.12)" />
+            <text x="636" y="403" font-size="14" font-weight="700" fill="#344054">5 to 6</text>
+            <text x="706" y="403" font-size="18" font-weight="700" fill="#101828">Open product gaps</text>
+            <text x="706" y="427" font-size="13" fill="#5f6b7a">Prompt regression checks, stubs, and environment completeness still remain.</text>
+          </svg>
+          <div class="caption">
+            <strong style="display:block; color:var(--ink); margin-bottom:6px;">Why these are the ranked gaps</strong>
+            <span>The top three gaps all threaten the core product proof: that the thing you log is the thing the system later reads, analyzes, and presents back to you.</span>
+          </div>
+        </figure>
+
+        <section class="section" id="changes">
+          <div class="subhead">
+            <div>
+              <p class="kicker">Branch Delta</p>
+              <h2>What this branch actually changed</h2>
+            </div>
+            <div class="pill">Grouped by workstream, not by file list</div>
+          </div>
+          <div class="change-grid">
+            <div class="change-card">
+              <h3>Workstream 1: runtime path unification</h3>
+              <p>This is why so many files moved. One small logical fix touched many entrypoints because each one had its own idea of where the database lived.</p>
+              <ul>
+                <li>Added <strong>paths.py</strong> as the runtime path source of truth.</li>
+                <li>Rewired <strong>data/db.py</strong>, setup, backup, migrate, export, lab import, Apple Health stub, demo seed, and modeling modules to resolve paths through it.</li>
+                <li>Gap addressed: ranked gap 1.</li>
+              </ul>
+            </div>
+
+            <div class="change-card">
+              <h3>Workstream 2: explicit demo reset workflow</h3>
+              <p>The repo now has a real top-level operator command instead of relying on people to know the seeding script’s side effects.</p>
+              <ul>
+                <li>Added <strong>scripts/demo_reset.py</strong>.</li>
+                <li>Clarified <strong>scripts/generate_demo_data.py</strong> with <strong>--skip-reset</strong>.</li>
+                <li>Verification now checks row counts plus the hero protein-sleep insight and trial records.</li>
+                <li>Gap addressed: ranked gap 2.</li>
+              </ul>
+            </div>
+
+            <div class="change-card">
+              <h3>Workstream 3: read-path local-day fix</h3>
+              <p>The branch changed the analytics read paths to group by the local date prefix stored in the timestamp string rather than letting SQLite reinterpret it in UTC.</p>
+              <ul>
+                <li>Touched <strong>modeling/engine.py</strong>, <strong>modeling/patterns.py</strong>, and <strong>modeling/causal.py</strong>.</li>
+                <li>Observed effect: seeded diet coverage now ends on <strong>2026-03-31</strong> instead of spilling into <strong>2026-04-01</strong>.</li>
+                <li>Gap addressed: ranked gap 3.</li>
+              </ul>
+            </div>
+
+            <div class="change-card">
+              <h3>Workstream 4: review and operator docs</h3>
+              <p>The docs pass was meant to make the repo understandable as a product review surface, not just a codebase.</p>
+              <ul>
+                <li>Updated <strong>README.md</strong> to explain the demo reset workflow and what the seed command actually does.</li>
+                <li>Updated <strong>SKILL.md</strong> so prompt-side setup guidance reflects the Python operator flow.</li>
+                <li>Replaced the markdown architecture note with this HTML deep dive.</li>
+                <li>Gap addressed: ranked gap 4.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="footnote">
+            <strong style="display:block; color:var(--ink); margin-bottom:6px;">Short answer to the “why 16 files?” question</strong>
+            <span>Most of the file count comes from one cross-cutting fix: every script and analytics entrypoint that could touch SQLite needed to stop hard-coding its own runtime path.</span>
+          </div>
+        </section>
+
+        <figure class="figure">
+          <svg viewBox="0 0 1180 540" xmlns="http://www.w3.org/2000/svg" aria-label="Gap coverage map">
+            <rect x="0" y="0" width="1180" height="540" rx="30" fill="#ffffff" />
+            <text x="58" y="58" font-size="16" font-weight="700" fill="#101828">Gap coverage map</text>
+            <text x="58" y="82" font-size="13" fill="#5f6b7a">Which ranked gaps this branch addresses, and which ones are still open.</text>
+
+            <rect x="58" y="118" width="250" height="52" rx="16" fill="#f8fafc" stroke="rgba(16,24,40,0.12)" />
+            <rect x="58" y="188" width="250" height="52" rx="16" fill="#f8fafc" stroke="rgba(16,24,40,0.12)" />
+            <rect x="58" y="258" width="250" height="52" rx="16" fill="#f8fafc" stroke="rgba(16,24,40,0.12)" />
+            <rect x="58" y="328" width="250" height="52" rx="16" fill="#f8fafc" stroke="rgba(16,24,40,0.12)" />
+            <rect x="58" y="398" width="250" height="52" rx="16" fill="#f8fafc" stroke="rgba(16,24,40,0.12)" />
+            <text x="84" y="149" font-size="14" font-weight="700" fill="#101828">Gap 1 path drift</text>
+            <text x="84" y="219" font-size="14" font-weight="700" fill="#101828">Gap 2 demo reset</text>
+            <text x="84" y="289" font-size="14" font-weight="700" fill="#101828">Gap 3 local-day bug</text>
+            <text x="84" y="359" font-size="14" font-weight="700" fill="#101828">Gap 4 docs drift</text>
+            <text x="84" y="429" font-size="14" font-weight="700" fill="#101828">Gap 5 and 6 open work</text>
+
+            <rect x="390" y="98" width="734" height="88" rx="22" fill="#eef4ff" stroke="#2459d3" />
+            <text x="420" y="132" font-size="15" font-weight="700" fill="#2459d3">Runtime path unification</text>
+            <text x="420" y="157" font-size="13" fill="#5f6b7a">paths.py plus rewiring scripts modeling and data helper entrypoints</text>
+
+            <rect x="390" y="204" width="734" height="88" rx="22" fill="#f4fbfa" stroke="#167c74" />
+            <text x="420" y="238" font-size="15" font-weight="700" fill="#167c74">Explicit demo reset flow</text>
+            <text x="420" y="263" font-size="13" fill="#5f6b7a">demo_reset seed verification and generator clarification</text>
+
+            <rect x="390" y="310" width="734" height="88" rx="22" fill="#fff7ed" stroke="#ba6a0a" />
+            <text x="420" y="344" font-size="15" font-weight="700" fill="#ba6a0a">Read-path local-day fix</text>
+            <text x="420" y="369" font-size="13" fill="#5f6b7a">analytics now group by local date prefix, not SQLite UTC DATE conversion</text>
+
+            <rect x="390" y="416" width="734" height="88" rx="22" fill="#fbfbff" stroke="rgba(16,24,40,0.12)" />
+            <text x="420" y="450" font-size="15" font-weight="700" fill="#344054">README prompt docs and review artifact</text>
+            <text x="420" y="475" font-size="13" fill="#5f6b7a">operator workflow, gap framing, testing guidance, and remaining work</text>
+
+            <path d="M308 144 H390" stroke="#2459d3" stroke-width="2.6" />
+            <path d="M308 214 H390" stroke="#167c74" stroke-width="2.6" />
+            <path d="M308 284 H390" stroke="#ba6a0a" stroke-width="2.6" />
+            <path d="M308 354 H390" stroke="#344054" stroke-width="2.6" />
+            <path d="M308 424 H352" stroke="#b42318" stroke-width="2.6" stroke-dasharray="8 8" />
+            <text x="362" y="430" font-size="12" fill="#b42318">still open</text>
+          </svg>
+          <div class="caption">
+            <strong style="display:block; color:var(--ink); margin-bottom:6px;">Which gaps this branch addressed</strong>
+            <span>The branch addresses the infrastructure and documentation gaps that made demos brittle. It does not yet close the prompt-regression or capability-completeness gaps.</span>
+          </div>
+        </figure>
+
+        <section class="section" id="testing">
+          <div class="subhead">
+            <div>
+              <p class="kicker">Verification</p>
+              <h2>How to test this branch</h2>
+            </div>
+            <div class="pill teal">Fast manual confidence</div>
+          </div>
+          <div class="test-grid">
+            <div class="test-card">
+              <h3>1. Static Python sanity</h3>
+              <p>Make sure the rewired entrypoints still parse.</p>
+              <div class="code">python3 -m compileall paths.py data scripts modeling</div>
+            </div>
+            <div class="test-card">
+              <h3>2. End-to-end operator smoke</h3>
+              <p>Run the demo reset flow in a temporary data directory so it cannot pollute your normal local state.</p>
+              <div class="code">LONGEVITY_OS_PROJECT_DIR=/tmp/longevity-os-demo-test-2 python3 scripts/demo_reset.py</div>
+              <ul>
+                <li>Expected: setup succeeds.</li>
+                <li>Expected: seed succeeds.</li>
+                <li>Expected: diet date coverage ends on 2026-03-31.</li>
+                <li>Expected: protein-sleep insight and the two trial records are verified.</li>
+              </ul>
+            </div>
+            <div class="test-card">
+              <h3>3. README-level operator check</h3>
+              <p>Read the README as if you were a fresh operator and confirm it points you at <strong>demo_reset.py</strong> rather than requiring hidden repo knowledge.</p>
+            </div>
+            <div class="test-card">
+              <h3>4. What was not fully tested in this shell</h3>
+              <p>The full modeling CLI flows were not executed here because the shell environment does not currently have <strong>numpy</strong> installed.</p>
+              <ul>
+                <li>The local-day fix in analytics was validated through the seeded DB coverage change.</li>
+                <li>Future validation should run weekly report and trial analysis commands in an environment with scientific Python dependencies installed.</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <section class="section" id="remaining">
+          <div class="subhead">
+            <div>
+              <p class="kicker">Next Work</p>
+              <h2>What remains to be done</h2>
+            </div>
+            <div class="pill med">Still open</div>
+          </div>
+          <div class="three-col">
+            <div class="rank-card">
+              <h3>Prompt write-path proof</h3>
+              <p>Verify that casual meal logging, supplement updates, and compact multi-metric messages really create the right rows through the prompt layer, not just through seed scripts.</p>
+            </div>
+            <div class="rank-card">
+              <h3>Regression coverage</h3>
+              <p>Add stable checks around ingestion and report flows so future prompt or schema edits do not silently weaken the demo story.</p>
+            </div>
+            <div class="rank-card">
+              <h3>Capability honesty</h3>
+              <p>Either implement Apple Health import and modeling environment setup, or keep those surfaces clearly marked as incomplete in docs and demos.</p>
+            </div>
+          </div>
+
+          <table class="matrix" style="margin-top:18px;">
+            <thead>
+              <tr>
+                <th>Remaining gap</th>
+                <th>Why it matters</th>
+                <th>Suggested next PR</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Meal and multi-metric prompt regression checks</td>
+                <td>This is the strongest missing proof that the write path is real under natural language inputs.</td>
+                <td><strong>PR 1:</strong> prompt write-path hardening and regression coverage</td>
+              </tr>
+              <tr>
+                <td>Weekly report and trial-status runtime validation</td>
+                <td>The current branch fixes the data plumbing, but full report CLI execution still needs an environment with scientific Python deps.</td>
+                <td><strong>PR 2:</strong> report and analysis environment validation</td>
+              </tr>
+              <tr>
+                <td>Stub or incomplete surfaces</td>
+                <td>These can weaken trust if they appear complete in the docs but are not actually production-ready.</td>
+                <td><strong>PR 3:</strong> capability cleanup or implementation</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="footnote">
+            <strong style="display:block; color:var(--ink); margin-bottom:6px;">Should this work be split into different PRs?</strong>
+            <span>Yes, if you want a cleaner review boundary. The natural split is: one PR for runtime hardening and demo reset, and a second PR for README, prompt-doc alignment, and the deep-dive review artifact. The current branch is defensible as one PR because the docs are describing the exact runtime fixes, but it is broader than strictly necessary.</span>
+          </div>
+        </section>
+      </div>
+    </main>
+  </body>
+</html>

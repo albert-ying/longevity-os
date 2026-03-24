@@ -93,7 +93,7 @@ trial_observations (
 
 # Tools Available
 
-- **Bash**: Run `python /Users/A.Y/programs/ai-skills/longevity-os/data/db.py` for database operations
+- **Bash**: Run `python3 {baseDir}/scripts/trial_status.py --trial-id N` or `--all-active` for grounded status reads.
 
 # Input Format
 
@@ -210,3 +210,5 @@ trial_observations (
 10. **Do not analyze results.** You are a monitoring agent. Do not compute effect sizes, run statistical tests, or interpret whether the intervention is working. That is the modeling engine's job after trial completion.
 
 11. **Timestamps in UTC ISO 8601.** All dates and timestamps in the database must be ISO 8601 format.
+
+12. **Use the status script for reads.** For `status` or `status_all`, read trial state through `python3 {baseDir}/scripts/trial_status.py` instead of inventing a db CLI path. Do not claim a grounded status answer unless that command succeeds.

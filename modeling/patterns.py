@@ -19,6 +19,7 @@ import json
 import argparse
 import sqlite3
 from datetime import datetime, timedelta, date
+from pathlib import Path
 from typing import Optional
 from itertools import combinations
 
@@ -29,10 +30,17 @@ from scipy import stats as scipy_stats
 # ---------------------------------------------------------------------------
 # DB import
 # ---------------------------------------------------------------------------
+REPO_ROOT = Path(__file__).resolve().parent.parent
 _DATA_DIR = os.path.join(os.path.dirname(__file__), '..', 'data')
-sys.path.insert(0, _DATA_DIR)
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+if _DATA_DIR not in sys.path:
+    sys.path.insert(0, _DATA_DIR)
 
-DB_PATH = '/Users/A.Y/Desktop/Projects/2026/longevity-os/data/taiyiyuan.db'
+from paths import get_db_path
+
+
+DB_PATH = str(get_db_path())
 
 try:
     from db import TaiYiYuanDB
@@ -80,6 +88,7 @@ CROSS_MODULE_PAIRS = [
         'lags': [0, 1, 2],
     },
 ]
+LOCAL_DATE_SQL = "SUBSTR(timestamp, 1, 10)"
 
 
 def _json_serial(obj):
@@ -133,8 +142,8 @@ class PatternDetector:
         }
         for metric_name, col in diet_cols.items():
             df = self._query_df(
-                f"SELECT DATE(timestamp) AS dt, SUM({col}) AS value "
-                f"FROM diet_entries WHERE DATE(timestamp) >= ? GROUP BY dt ORDER BY dt",
+                f"SELECT {LOCAL_DATE_SQL} AS dt, SUM({col}) AS value "
+                f"FROM diet_entries WHERE {LOCAL_DATE_SQL} >= ? GROUP BY dt ORDER BY dt",
                 (cutoff,),
             )
             if not df.empty and df['value'].notna().sum() >= 5:
@@ -149,9 +158,9 @@ class PatternDetector:
         for col in micro_cols:
             try:
                 df = self._query_df(
-                    f"SELECT DATE(de.timestamp) AS dt, SUM(di.{col}) AS value "
+                    f"SELECT SUBSTR(de.timestamp, 1, 10) AS dt, SUM(di.{col}) AS value "
                     f"FROM diet_ingredients di JOIN diet_entries de ON di.entry_id = de.id "
-                    f"WHERE DATE(de.timestamp) >= ? GROUP BY dt ORDER BY dt",
+                    f"WHERE SUBSTR(de.timestamp, 1, 10) >= ? GROUP BY dt ORDER BY dt",
                     (cutoff,),
                 )
                 if not df.empty and df['value'].notna().sum() >= 5:
@@ -169,8 +178,8 @@ class PatternDetector:
         }
         for metric_name, (agg, col) in ex_metrics.items():
             df = self._query_df(
-                f"SELECT DATE(timestamp) AS dt, {agg}({col}) AS value "
-                f"FROM exercise_entries WHERE DATE(timestamp) >= ? GROUP BY dt ORDER BY dt",
+                f"SELECT {LOCAL_DATE_SQL} AS dt, {agg}({col}) AS value "
+                f"FROM exercise_entries WHERE {LOCAL_DATE_SQL} >= ? GROUP BY dt ORDER BY dt",
                 (cutoff,),
             )
             if not df.empty and df['value'].notna().sum() >= 5:
@@ -179,11 +188,11 @@ class PatternDetector:
 
         # --- Exercise: daily volume load ---
         vol_df = self._query_df(
-            """SELECT DATE(ee.timestamp) AS dt,
+            """SELECT SUBSTR(ee.timestamp, 1, 10) AS dt,
                       SUM(ed.sets * ed.reps * ed.weight_kg) AS value
                FROM exercise_details ed
                JOIN exercise_entries ee ON ed.entry_id = ee.id
-               WHERE DATE(ee.timestamp) >= ?
+               WHERE SUBSTR(ee.timestamp, 1, 10) >= ?
                GROUP BY dt ORDER BY dt""",
             (cutoff,),
         )
@@ -193,14 +202,14 @@ class PatternDetector:
 
         # --- Body metrics: each metric_type separately ---
         types_df = self._query_df(
-            "SELECT DISTINCT metric_type FROM body_metrics WHERE DATE(timestamp) >= ?",
+            "SELECT DISTINCT metric_type FROM body_metrics WHERE SUBSTR(timestamp, 1, 10) >= ?",
             (cutoff,),
         )
         for _, row in types_df.iterrows():
             mt = row['metric_type']
             df = self._query_df(
-                "SELECT DATE(timestamp) AS dt, AVG(value) AS value "
-                "FROM body_metrics WHERE metric_type = ? AND DATE(timestamp) >= ? "
+                "SELECT SUBSTR(timestamp, 1, 10) AS dt, AVG(value) AS value "
+                "FROM body_metrics WHERE metric_type = ? AND SUBSTR(timestamp, 1, 10) >= ? "
                 "GROUP BY dt ORDER BY dt",
                 (mt, cutoff),
             )
@@ -210,14 +219,14 @@ class PatternDetector:
 
         # --- Biomarkers (sparse — include if enough points) ---
         markers_df = self._query_df(
-            "SELECT DISTINCT marker_name FROM biomarkers WHERE DATE(timestamp) >= ?",
+            "SELECT DISTINCT marker_name FROM biomarkers WHERE SUBSTR(timestamp, 1, 10) >= ?",
             (cutoff,),
         )
         for _, row in markers_df.iterrows():
             mn = row['marker_name']
             df = self._query_df(
-                "SELECT DATE(timestamp) AS dt, value FROM biomarkers "
-                "WHERE marker_name = ? AND DATE(timestamp) >= ? ORDER BY dt",
+                "SELECT SUBSTR(timestamp, 1, 10) AS dt, value FROM biomarkers "
+                "WHERE marker_name = ? AND SUBSTR(timestamp, 1, 10) >= ? ORDER BY dt",
                 (mn, cutoff),
             )
             if not df.empty and len(df) >= 3:

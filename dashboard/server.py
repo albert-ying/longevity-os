@@ -12,24 +12,23 @@ Usage:
 
 import argparse
 import json
-import os
 import sqlite3
+import sys
 from datetime import datetime, timedelta
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
+REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from paths import get_db_path
+
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
-DATABASE = Path(
-    os.environ.get(
-        "TAIYIYUAN_DB",
-        os.path.expanduser(
-            "~/Desktop/Projects/2026/longevity-os/data/taiyiyuan.db"
-        ),
-    )
-)
+DATABASE = get_db_path()
 DASHBOARD_HTML = Path(__file__).parent / "dashboard.html"
 DEFAULT_PORT = 8420
 
